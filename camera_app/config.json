@@ -1,0 +1,21 @@
+{
+  "cameras": [
+    {
+      "id": "cam1",
+      "name": "Cámara Principal",
+      "rtsp_url": "rtsp://fjoga:2920Juan@192.168.0.249:554/stream1",
+      "enabled": true
+    },
+    {
+      "id": "cam2",
+      "name": "Cámara principal", 
+      "rtsp_url": "rtsp://fjoga:2920Juan@192.168.0.244:554/stream1",
+      "enabled": true
+    }
+  ],
+  "recordings_path": "C:\\Users\\agust\\OneDrive\\Escritorio\\proyectoCamaras\\camera_app\\recordings",
+  "retention_days": 7,
+  "segment_duration": 3600,
+  "flask_port": 5000,
+  "ffmpeg_reconnect_delay": 10
+}

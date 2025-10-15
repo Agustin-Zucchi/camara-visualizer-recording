@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Vigilancia RTSP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: #ecf0f1;
+            padding: 15px 30px;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #27ae60;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .video-container {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .video-wrapper {
+            position: relative;
+            display: inline-block;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background: #000;
+        }
+
+        .video-stream {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border: 3px solid #3498db;
+            border-radius: 10px;
+        }
+
+        .video-placeholder {
+            width: 640px;
+            height: 480px;
+            background: #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+            border-radius: 10px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(149, 165, 166, 0.4);
+        }
+
+        .footer {
+            background: #34495e;
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .camera-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .camera-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .camera-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+
+        .camera-video {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border: none;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .video-wrapper {
+                max-width: 100%;
+            }
+            
+            .video-stream {
+                width: 100%;
+                height: auto;
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Sistema de Vigilancia RTSP</h1>
+            <p>Previsualización en tiempo real de cámaras de seguridad</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator status-online"></div>
+                <span>Sistema Activo</span>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator status-online"></div>
+                <span>Grabación 24/7</span>
+            </div>
+            <div class="status-item">
+                <span id="current-time"></span>
+            </div>
+        </div>
+
+        {% if cameras|length == 1 %}
+            <!-- Vista de cámara única -->
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <img src="/video_feed" 
+                         alt="Stream de Cámara" 
+                         class="video-stream"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="video-placeholder" style="display: none;">
+                        <div>
+                            <div class="spinner"></div>
+                            <div>Conectando a la cámara...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="refreshStream()">🔄 Actualizar</button>
+                    <a href="/status" class="btn btn-secondary" target="_blank">📊 Estado del Sistema</a>
+                </div>
+            </div>
+        {% elif cameras|length > 1 %}
+            <!-- Vista de múltiples cámaras -->
+            <div class="camera-grid">
+                {% for camera in cameras %}
+                    <div class="camera-card">
+                        <div class="camera-header">
+                            {{ camera.name }} ({{ camera.id }})
+                        </div>
+                        <img src="/video_feed/{{ camera.id }}" 
+                             alt="{{ camera.name }}" 
+                             class="camera-video"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <div>Conectando...</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="controls" style="padding: 0 30px 30px;">
+                <button class="btn btn-primary" onclick="refreshAllStreams()">🔄 Actualizar Todas</button>
+                <a href="/status" class="btn btn-secondary" target="_blank">📊 Estado del Sistema</a>
+            </div>
+        {% else %}
+            <!-- Sin cámaras configuradas -->
+            <div class="video-container">
+                <div class="error-message">
+                    ⚠️ No hay cámaras configuradas o habilitadas
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="footer">
+            <p>Sistema de Vigilancia RTSP | Grabación continua 24/7 | Retención: 7 días</p>
+            <p>Desarrollado con Python, Flask y OpenCV</p>
+        </div>
+    </div>
+
+    <script>
+        // Actualizar reloj en tiempo real
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        // Actualizar cada segundo
+        setInterval(updateClock, 1000);
+        updateClock(); // Mostrar inmediatamente
+
+        // Función para actualizar stream individual
+        function refreshStream() {
+            const img = document.querySelector('.video-stream');
+            if (img) {
+                const src = img.src;
+                img.src = '';
+                setTimeout(() => {
+                    img.src = src + '?t=' + new Date().getTime();
+                }, 100);
+            }
+        }
+
+        // Función para actualizar todos los streams
+        function refreshAllStreams() {
+            const images = document.querySelectorAll('.camera-video, .video-stream');
+            images.forEach(img => {
+                const src = img.src;
+                img.src = '';
+                setTimeout(() => {
+                    img.src = src + '?t=' + new Date().getTime();
+                }, 100);
+            });
+        }
+
+        // Verificar estado del sistema cada 30 segundos
+        setInterval(async () => {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                // Actualizar indicadores de estado
+                const indicators = document.querySelectorAll('.status-indicator');
+                indicators.forEach(indicator => {
+                    indicator.className = 'status-indicator status-online';
+                });
+                
+            } catch (error) {
+                console.log('Error verificando estado:', error);
+                const indicators = document.querySelectorAll('.status-indicator');
+                indicators.forEach(indicator => {
+                    indicator.className = 'status-indicator status-offline';
+                });
+            }
+        }, 30000);
+
+        // Manejar errores de imagen
+        document.addEventListener('DOMContentLoaded', function() {
+            const images = document.querySelectorAll('img[src*="/video_feed"]');
+            images.forEach(img => {
+                img.addEventListener('error', function() {
+                    this.style.display = 'none';
+                    const placeholder = this.nextElementSibling;
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
