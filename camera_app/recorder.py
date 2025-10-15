@@ -84,14 +84,16 @@ class RTSPRecorder:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_file = f"{self.config['recordings_path']}/{camera['id']}_{timestamp}.mp4"
         
-        # Comando FFmpeg optimizado para streams RTSP (sin segmentación)
+        # Comando FFmpeg optimizado para streams RTSP con codificación H.264
         cmd = [
             'ffmpeg',
             '-rtsp_transport', 'tcp',           # Usar TCP para mayor estabilidad
             '-i', camera['rtsp_url'],           # URL de entrada RTSP
-            '-c:v', 'copy',                     # Copiar video sin transcodificación
+            '-c:v', 'libx264',                  # Codificar video en H.264 (compatible con Windows)
+            '-preset', 'fast',                  # Preset rápido para mejor rendimiento
+            '-crf', '23',                       # Calidad de video (18-28, menor = mejor calidad)
             '-c:a', 'aac',                      # Convertir audio a AAC (compatible con MP4)
-            '-t', str(self.config['segment_duration']),  # Duración de grabación (segundos)
+            '-t', str(self.config.get('segment_duration', 3600)),  # Duración de grabación (segundos)
             '-loglevel', 'error',               # Solo mostrar errores
             '-y',                               # Sobrescribir archivos existentes
             output_file
@@ -170,9 +172,6 @@ class RTSPRecorder:
     def check_and_restart_recordings(self):
         """Verificar y reiniciar grabaciones que hayan fallado o completado."""
         for camera in self.config['cameras']:
-            if not camera['enabled']:
-                continue
-                
             camera_id = camera['id']
             
             # Si no hay proceso o el proceso terminó (completado o falló)
@@ -198,10 +197,9 @@ class RTSPRecorder:
         # Crear directorio de grabaciones
         self._create_recordings_directory()
         
-        # Iniciar grabaciones para todas las cámaras habilitadas
+        # Iniciar grabaciones para todas las cámaras
         for camera in self.config['cameras']:
-            if camera['enabled']:
-                self.start_recording(camera)
+            self.start_recording(camera)
         
         print(f"\n📊 Estado: {len(self.processes)} grabaciones activas")
         print("💡 Presiona Ctrl+C para detener todas las grabaciones")
@@ -210,7 +208,7 @@ class RTSPRecorder:
         # Bucle principal con verificación periódica
         try:
             while self.running:
-                time.sleep(self.config['ffmpeg_reconnect_delay'])
+                time.sleep(self.config.get('ffmpeg_reconnect_delay', 10))
                 
                 # Verificar y reiniciar grabaciones si es necesario
                 self.check_and_restart_recordings()

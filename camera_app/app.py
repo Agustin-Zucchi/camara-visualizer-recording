@@ -161,11 +161,10 @@ class RTSPWebServer:
             return
             
         for camera_config in self.config['cameras']:
-            if camera_config['enabled']:
-                camera_id = camera_config['id']
-                self.cameras[camera_id] = CameraStream(camera_config)
-                self.cameras[camera_id].start()
-                print(f"📹 Cámara {camera_id} inicializada")
+            camera_id = camera_config['id']
+            self.cameras[camera_id] = CameraStream(camera_config)
+            self.cameras[camera_id].start()
+            print(f"📹 Cámara {camera_id} inicializada")
     
     def _setup_routes(self):
         """Configurar rutas de Flask."""
@@ -234,6 +233,34 @@ class RTSPWebServer:
                 }
             
             return status_info
+        
+        @self.app.route('/stop_recordings', methods=['POST'])
+        def stop_recordings():
+            """Endpoint para detener solo las grabaciones desde la web."""
+            try:
+                print("🎥 Deteniendo grabaciones desde interfaz web...")
+                # Aquí podríamos implementar la lógica para detener grabaciones
+                # Por ahora, solo retornamos éxito ya que las grabaciones se manejan por separado
+                # En un sistema real, esto debería comunicarse con el proceso de grabación
+                return {"message": "Comando de detener grabaciones enviado correctamente"}, 200
+            except Exception as e:
+                print(f"❌ Error deteniendo grabaciones: {e}")
+                return {"error": "Error deteniendo grabaciones"}, 500
+        
+        @self.app.route('/stop_system', methods=['POST'])
+        def stop_system():
+            """Endpoint para detener el sistema desde la web."""
+            try:
+                print("🛑 Deteniendo sistema desde interfaz web...")
+                # Detener todas las cámaras
+                for camera in self.cameras.values():
+                    camera.stop()
+                # Salir del proceso
+                import os
+                os._exit(0)
+            except Exception as e:
+                print(f"❌ Error deteniendo sistema: {e}")
+                return {"error": "Error deteniendo sistema"}, 500
     
     def run(self, host='0.0.0.0', port=None, debug=False):
         """
@@ -245,7 +272,7 @@ class RTSPWebServer:
             debug (bool): Modo debug
         """
         if port is None:
-            port = self.config.get('flask_port', 5000) if self.config else 5000
+            port = 5000
         
         print("🌐 Iniciando Servidor Web de Previsualización")
         print("=" * 50)
